@@ -149,7 +149,7 @@ st.divider()
 st.subheader("1 · Choose a Persona")
 
 persona_options = {
-    f"{p.get('system_info', {}).get('name', 'Unknown')}  (@{p.get('handle', '?')})": p
+    f"{p.get('system_info', {}).get('name', 'Unknown')}  (@{p.get('system_info', {}).get('handle', '?')})": p
     for p in orgs
 }
 chosen_persona_label = st.selectbox(
@@ -246,7 +246,7 @@ if publish_btn and ready:
         "sentiment": sentiment,
         "is_draft":  1 if is_draft else 0,
     }
-    persona_hash = chosen_persona["hash"]
+    persona_hash = chosen_persona["system_info"]["hash"]
     team_ids     = [t["team_id"] for t in chosen_teams]
 
     results = []
@@ -308,3 +308,4 @@ with col2:
         st.session_state.pop("teams", None)
         st.session_state.pop("api_key", None)
         st.rerun()
+
