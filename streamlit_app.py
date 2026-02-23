@@ -9,7 +9,7 @@ import io, json, os, re, time, zipfile
 import requests
 import streamlit as st
 
-# ── Page config ────────────────────────────────────────────────────────────────
+# ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="Conducttr Publisher",
@@ -31,11 +31,15 @@ def make_headers(api_key: str) -> dict:
 
 
 def clean_team_name(raw_name: str) -> str:
+    # Named prefixes with fixed display labels
     if raw_name.startswith("S - "):
         return "Session"
-    name = re.sub(r"^T - ", "", raw_name)
-    name = re.sub(r" - \d{4}[\/\-]\d{2}[\/\-]\d{2}.*$", "", name)
-    return name
+    if raw_name.startswith("M - "):
+        return "Moderators"
+    # All other prefixes (e.g. T -): strip prefix, then strip trailing date/timestamp
+    name = re.sub(r"^[A-Z] - ", "", raw_name)
+    name = re.sub(r" - \d{4}[\/-]\d{2}[\/-]\d{2}.*$", "", name)
+    return name.strip()
 
 # ── Cached API calls ───────────────────────────────────────────────────────────
 
@@ -65,20 +69,13 @@ def fetch_personas(api_key: str) -> list[dict]:
 
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_teams(api_key: str) -> list[dict]:
-    """Fetch all teams; cached for 5 minutes."""
+    """Fetch all teams; cached for 5 minutes.
+    Response is always a bare JSON array with 'id' and 'name' fields.
+    """
     headers = make_headers(api_key)
     res = requests.get(f"{API_BASE}/teams", headers=headers)
     res.raise_for_status()
-    data = res.json()
-
-    if isinstance(data, list):
-        raw = data
-    elif isinstance(data, dict):
-        raw = data.get("teams") or data.get("data") or []
-    else:
-        raise ValueError(f"Unexpected /teams response: {type(data)}")
-
-    return [{"team_id": t.get("team_id") or t.get("id"), "name": t["name"]} for t in raw]
+    return [{"team_id": t["id"], "name": t["name"]} for t in res.json()]
 
 
 def publish_to_team(api_key: str, payload: dict) -> dict:
